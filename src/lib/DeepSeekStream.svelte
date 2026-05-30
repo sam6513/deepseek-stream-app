@@ -58,7 +58,7 @@
   let streamEl: HTMLDivElement | null = null;
   let autoScroll = true;
   let scrollRAF: number | null = null;
-  let sendCount = 0;
+  let sendCount = $state(0);
 
   // ── Session persistence (sessionStorage) ──────────────────
   const SESSION_STORE = 'ds_session_data';
@@ -69,9 +69,15 @@
       if (!raw) return;
       const data = JSON.parse(raw);
       if (Array.isArray(data.messages) && data.messages.length > 0) {
-        messages = data.messages;
+        // Validate per-message shape before restoring
+        const valid = data.messages.filter((m: any) =>
+          m && typeof m.role === 'string' && typeof m.content === 'string'
+        );
+        if (valid.length === 0) return;
+        messages = valid;
         sendCount = typeof data.sendCount === 'number' ? data.sendCount : 0;
-        done = true; // restored messages are already finalized
+        done = typeof data.done === 'boolean' ? data.done : true;
+        error = typeof data.error === 'string' ? data.error : '';
       }
     } catch {
       // sessionStorage unavailable or corrupted — silent fallback
@@ -83,6 +89,8 @@
       sessionStorage.setItem(SESSION_STORE, JSON.stringify({
         messages,
         sendCount,
+        done,
+        error,
       }));
     } catch {
       // sessionStorage full or unavailable — silent fallback
@@ -98,7 +106,10 @@
   }
 
   // Restore on mount (before $effect auto-start runs)
-  loadSession();
+  // Guarded for SSR compatibility when embedded in other projects
+  if (typeof window !== 'undefined') {
+    loadSession();
+  }
 
   // Panel drag state
   let panelX = $state(0);
@@ -271,7 +282,6 @@
     thinkingEndTime = 0;
 
     abortController = new AbortController();
-    sendCount++;
 
     try {
       const SYSTEM_PREFIX =
@@ -383,6 +393,9 @@
         currentThinkingDone = false;
         currentThinkingDuration = 0;
       }
+      // Only count successful rounds (increment after no error)
+      if (!error) sendCount++;
+
       // Auto-send follow-up if configured
       if (followUpPrompt && sendCount === 1 && !error) {
         setTimeout(() => send(followUpPrompt), followUpDelay);
