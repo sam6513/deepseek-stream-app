@@ -38,6 +38,21 @@
 > ### 会话持久化
 > 对话历史（`messages[]`）自动保存到 `sessionStorage`，**刷新页面不会丢失对话**。关闭浏览器标签页后自动清除。调用 `reset()` 会同时清除持久化数据。
 >
+> **新 session 何时开始：**
+> - 关闭浏览器标签页（`sessionStorage` 自动清除）
+> - 调用 `reset()` 方法
+> - 首次访问该域名页面
+> - 存储数据损坏时自动回退到空白
+> - 切换浏览器/设备（天然隔离）
+>
+> **使用时注意：**
+> - **同域名多页面串号** — 同一域名下多个页面嵌入 DeepSeekStream 会共享 `ds_session_data` key，对话历史互相覆盖（当前版本未提供 `sessionKey` prop 做隔离）
+> - **`reset()` 后不会自动开始** — 需要手动改变 `prompt` 或调用 `send()`，因为 `autoStart` 的 `$effect` 依赖于 `prompt` 变化
+> - **流式输出中途刷新丢失未完成消息** — 已写入 `messages[]` 的 user 消息会持久化，但正在进行中的 assistant 流式内容会永久丢失（无法恢复断开的 HTTP 流）
+> - **无痕/隐私模式静默失效** — 部分浏览器限制 `sessionStorage`，代码用 `try/catch` 兜底不会报错，但对话不会持久化
+> - **长对话累积存储** — `sessionStorage` 上限约 5-10MB/域名，纯文本对话通常远低于此，但嵌入大段代码输出时需留意
+> - **不跨标签页同步** — 多标签页各自独立的 `sessionStorage`，对话互不可见
+>
 > ### 构建与部署
 > - `.env` 文件存放 `VITE_DEEPSEEK_API_KEY=sk-xxx`，Vite 构建时注入客户端
 > - 生产部署：`./deploy.sh`（Docker 构建 + 运行，默认监听 `127.0.0.1:8102:3000`）
@@ -130,6 +145,25 @@ docker run -d --name deepseek-stream --restart always -p 3000:3000 deepseek-stre
 ## 会话持久化
 
 对话历史（`messages[]`）自动保存到 `sessionStorage`，**刷新页面不会丢失对话**。关闭浏览器标签页后自动清除。调用 `reset()` 会同时清除持久化数据。
+
+### 何时开始新 session
+
+| 触发方式 | 行为 |
+|----------|------|
+| **关闭标签页** | `sessionStorage` 浏览器自动清除，新标签页 = 全新对话 |
+| **调用 `reset()`** | `ds.reset()` → 清内存 + 删持久化 |
+| **首次访问** | 无对应存储 key → 空白起始 |
+| **数据损坏** | JSON 解析失败或校验不通过 → 静默回退到空白 |
+| **切换浏览器/设备** | `sessionStorage` 按浏览器+域名隔离，天然不互通 |
+
+### 注意事项
+
+- **同域名多页面串号** — 同一域名下多个页面嵌入 DeepSeekStream 会共享 `ds_session_data` key，对话历史互相覆盖（当前版本未提供 `sessionKey` prop 做隔离）
+- **`reset()` 后不会自动开始** — 需要手动改变 `prompt` 或调用 `send()`，因为 `autoStart` 的 `$effect` 依赖于 `prompt` 变化
+- **流式输出中途刷新丢失未完成消息** — 已写入 `messages[]` 的 user 消息会持久化，但正在进行中的 assistant 流式内容会永久丢失（无法恢复断开的 HTTP 流）
+- **无痕/隐私模式静默失效** — 部分浏览器限制 `sessionStorage`，代码用 `try/catch` 兜底不会报错，但对话不会持久化
+- **长对话累积存储** — `sessionStorage` 上限约 5-10MB/域名，纯文本对话通常远低于此，但嵌入大段代码输出时需留意
+- **不跨标签页同步** — 多标签页各自独立的 `sessionStorage`，对话互不可见
 
 ## 依赖
 
