@@ -29,6 +29,10 @@
     }
   }
 
+  function handleInput() {
+    if (passError) passError = false;
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter') handleUnlock();
   }
@@ -53,6 +57,7 @@
         class="gate-input"
         class:gate-input-error={passError}
         bind:value={passwordInput}
+        oninput={handleInput}
         onkeydown={handleKeydown}
         placeholder="密码"
         autofocus

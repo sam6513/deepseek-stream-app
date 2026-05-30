@@ -183,12 +183,20 @@
     if (!finalPrompt || streaming) return;
 
     if (!apiKey) {
-      error = 'API Key 未配置，请在 .env 中设置 VITE_DEEPSEEK_API_KEY 并重启/重建。';
+      error = 'API Key 未配置，请设置 apiKey 属性或环境变量。';
       return;
     }
 
     if (!apiUrl || !apiUrl.startsWith('http')) {
       error = `API 地址无效: ${apiUrl || '(空)'}`;
+      return;
+    }
+
+    // Validate URL is well-formed
+    try {
+      new URL(apiUrl);
+    } catch {
+      error = `API 地址格式不正确: ${apiUrl}`;
       return;
     }
 
