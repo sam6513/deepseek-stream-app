@@ -182,6 +182,16 @@
     const finalPrompt = userPrompt || prompt;
     if (!finalPrompt || streaming) return;
 
+    if (!apiKey) {
+      error = 'API Key 未配置，请在 .env 中设置 VITE_DEEPSEEK_API_KEY 并重启/重建。';
+      return;
+    }
+
+    if (!apiUrl || !apiUrl.startsWith('http')) {
+      error = `API 地址无效: ${apiUrl || '(空)'}`;
+      return;
+    }
+
     // Finalize any current streaming content into messages
     if (currentContent || currentThinking) {
       messages = [...messages, {

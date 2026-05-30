@@ -1,9 +1,11 @@
 #!/bin/bash
 set -e
 
+cd "$(dirname "$0")"
+
 # Load API key from environment or .env file
 if [ -z "$DEEPSEEK_API_KEY" ] && [ -f .env ]; then
-  export DEEPSEEK_API_KEY=$(grep -v '^#' .env | grep DEEPSEEK_API_KEY | cut -d '=' -f2)
+  export DEEPSEEK_API_KEY=$(grep -v '^#' .env | grep '^DEEPSEEK_API_KEY=' | cut -d '=' -f2)
 fi
 
 if [ -z "$DEEPSEEK_API_KEY" ]; then
