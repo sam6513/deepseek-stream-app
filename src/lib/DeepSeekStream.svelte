@@ -60,6 +60,46 @@
   let scrollRAF: number | null = null;
   let sendCount = 0;
 
+  // ── Session persistence (sessionStorage) ──────────────────
+  const SESSION_STORE = 'ds_session_data';
+
+  function loadSession() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_STORE);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.messages) && data.messages.length > 0) {
+        messages = data.messages;
+        sendCount = typeof data.sendCount === 'number' ? data.sendCount : 0;
+        done = true; // restored messages are already finalized
+      }
+    } catch {
+      // sessionStorage unavailable or corrupted — silent fallback
+    }
+  }
+
+  function saveSession() {
+    try {
+      sessionStorage.setItem(SESSION_STORE, JSON.stringify({
+        messages,
+        sendCount,
+      }));
+    } catch {
+      // sessionStorage full or unavailable — silent fallback
+    }
+  }
+
+  function clearSession() {
+    try {
+      sessionStorage.removeItem(SESSION_STORE);
+    } catch {
+      // silent fallback
+    }
+  }
+
+  // Restore on mount (before $effect auto-start runs)
+  loadSession();
+
   // Panel drag state
   let panelX = $state(0);
   let panelY = $state(0);
@@ -363,6 +403,7 @@
     streaming = false;
     error = '';
     sendCount = 0;
+    clearSession();
   }
 
   function formatDuration(seconds: number): string {
@@ -455,6 +496,17 @@
   $effect(() => {
     if (autoStart && prompt && !done && !streaming && messages.length === 0) {
       send();
+    }
+  });
+
+  // Persist conversation to sessionStorage whenever messages or sendCount change
+  $effect(() => {
+    void messages.length;
+    void sendCount;
+    if (messages.length > 0) {
+      saveSession();
+    } else {
+      clearSession();
     }
   });
 

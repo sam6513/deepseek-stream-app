@@ -35,6 +35,9 @@
 > - `send(prompt: string): Promise<void>` — 发送新 prompt，自动携带对话历史
 > - `reset(): void` — 清空对话和状态
 >
+> ### 会话持久化
+> 对话历史（`messages[]`）自动保存到 `sessionStorage`，**刷新页面不会丢失对话**。关闭浏览器标签页后自动清除。调用 `reset()` 会同时清除持久化数据。
+>
 > ### 构建与部署
 > - `.env` 文件存放 `VITE_DEEPSEEK_API_KEY=sk-xxx`，Vite 构建时注入客户端
 > - 生产部署：`./deploy.sh`（Docker 构建 + 运行，默认监听 `127.0.0.1:8102:3000`）
@@ -123,6 +126,10 @@ docker run -d --name deepseek-stream --restart always -p 3000:3000 deepseek-stre
 ### `reset(): void`
 
 清空所有状态和对话历史。
+
+## 会话持久化
+
+对话历史（`messages[]`）自动保存到 `sessionStorage`，**刷新页面不会丢失对话**。关闭浏览器标签页后自动清除。调用 `reset()` 会同时清除持久化数据。
 
 ## 依赖
 
